@@ -231,6 +231,10 @@ class StateProvider extends Component<StateContextProps, StateContextState> {
 
     // fire animation
     this.lastScale = this.stateProvider.scale;
+
+    //ios safari bug: animation scaling, if new scale again，scale forever invalid.
+    if(this.animation){ return;}
+
     clearTimeout(wheelAnimationTimer);
     wheelAnimationTimer = setTimeout(() => {
       if (!this.mounted) return;
