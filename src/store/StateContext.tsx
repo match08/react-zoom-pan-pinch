@@ -221,6 +221,7 @@ class StateProvider extends Component<StateContextProps, StateContextState> {
     if (handleWheelStop(this.previousWheelEvent, event, this.stateProvider)) {
       clearTimeout(wheelStopEventTimer);
       wheelStopEventTimer = setTimeout(() => {
+        if (!this.mounted) return;
         handleCallback(onWheelStop, this.getCallbackProps());
         wheelStopEventTimer = null;
       }, wheelStopEventTime);
@@ -231,10 +232,6 @@ class StateProvider extends Component<StateContextProps, StateContextState> {
 
     // fire animation
     this.lastScale = this.stateProvider.scale;
-
-    //ios safari bug: animation scaling, if new scale again，scale forever invalid.
-    if(this.animation){ return;}
-
     clearTimeout(wheelAnimationTimer);
     wheelAnimationTimer = setTimeout(() => {
       if (!this.mounted) return;
@@ -292,6 +289,7 @@ class StateProvider extends Component<StateContextProps, StateContextState> {
     const {
       wrapperComponent,
       scale,
+      options: { minScale, maxScale },
       pan: { disabled, limitToWrapperBounds },
     } = this.stateProvider;
     const { target, touches } = event;
@@ -300,7 +298,9 @@ class StateProvider extends Component<StateContextProps, StateContextState> {
       disabled ||
       this.stateProvider.options.disabled ||
       (wrapperComponent && !wrapperComponent.contains(target)) ||
-      this.checkPanningTarget(event)
+      this.checkPanningTarget(event) ||
+      scale < minScale ||
+      scale > maxScale
     )
       return;
 
@@ -369,16 +369,18 @@ class StateProvider extends Component<StateContextProps, StateContextState> {
   };
 
   handlePinch = event => {
+    this.isDown = false;
     handleZoomPinch.call(this, event);
     handleCallback(this.props.onPinching, this.getCallbackProps());
   };
 
   handlePinchStop = () => {
     if (typeof this.pinchStartScale === "number") {
+      this.isDown = false;
       this.velocity = null;
-      this.pinchStartDistance = null;
       this.lastDistance = null;
       this.pinchStartScale = null;
+      this.pinchStartDistance = null;
       handlePaddingAnimation.call(this);
       handleCallback(this.props.onPinchingStop, this.getCallbackProps());
     }
@@ -414,8 +416,8 @@ class StateProvider extends Component<StateContextProps, StateContextState> {
   };
 
   handleTouchStop = () => {
-    this.handlePinchStop();
     this.handleStopPanning();
+    this.handlePinchStop();
   };
 
   //////////
